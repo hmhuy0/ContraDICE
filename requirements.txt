@@ -1,0 +1,16 @@
+lockfile
+gym==0.23.1
+mujoco
+mujoco-py
+Cython<3.0
+numpy==1.24.1
+h5py
+tqdm
+wandb
+ml-collections==0.1.1
+flax
+tensorflow-probability
+tensorboardX
+optax
+joblib
+pandas
