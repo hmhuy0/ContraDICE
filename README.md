@@ -80,7 +80,7 @@ python train.py \
 ##################################################
 
 python train.py \
---env_name=Kitchen-complete-v0 --max_steps=1000000 \
+--env_name=kitchen-complete-v0 --max_steps=1000000 \
 --expert_dataset_size=1 \
 --bad_name_list=partial \
 --bad_size_list=25 \
