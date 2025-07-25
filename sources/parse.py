@@ -7,6 +7,7 @@ args = flags.FLAGS
 flags.DEFINE_string('env_name', 'halfcheetah-expert-v2', 'Environment name.')
 flags.DEFINE_string('v_update', 'rkl_loss','Value update function.')
 flags.DEFINE_string('exp_name', 'dump', 'Epoch logging dir.')
+flags.DEFINE_string('sweep_id', None, 'Sweep ID.')
 flags.DEFINE_integer('seed', 42, 'Random seed.')
 flags.DEFINE_integer('eval_episodes', 10, 'Number of episodes used for evaluation.')
 flags.DEFINE_integer('eval_interval', 10000, 'Eval interval.')

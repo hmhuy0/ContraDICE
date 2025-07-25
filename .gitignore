@@ -8,11 +8,13 @@ __pycache__/
 */results/*
 */tmp/*
 logs/
+sweep.py
 # Distribution / packaging
 .Python
 build/
 develop-eggs/
 dist/
+vd4rl/dataset/
 downloads/
 eggs/
 .eggs/
