@@ -7,6 +7,8 @@ import sys
 sys.path.append('..')
 sys.path.append('./')
 
+import wandb
+
 import numpy as np
 import sys
 from absl import app, flags
@@ -14,17 +16,14 @@ from sources.parse import args
 import jax
 from collections import deque
 import random
-
-import h5py
-from pathlib import Path
-from dm_env import specs
-from vd4rl import dmc
-
+import gym
+from pprint import pprint
+import d4rl
 import jax.numpy as jnp
 from sources.utils import ConfigArgs, evaluate, log_info
 from sources.algos.ContraDICE.algo import ContraDICE
 from sources.dataset.mix_dataset import CombinedDataset, jax_combined_dataset
-from sources.dataset.d4rl_dataset import get_d4rl_dataset, get_vd4rl_dataset
+from sources.dataset.d4rl_dataset import get_d4rl_dataset, jax_d4rl_dataset
 from sources.utils.env_wrappers import EpisodeMonitor, SinglePrecision
 
 
@@ -53,12 +52,25 @@ def make_mixed_dataset(args,max_episode_steps):
     print('-'*100)
     return mixed_dataset, mix_dataset_name
 
-def create_expert_dataset_and_env(args,dataset_name,robot_name):
-    env = dmc.make(args.env_name, 3,
-                2, args.seed, None)
-    env.max_episode_steps=500
+def create_expert_dataset_and_env(args,robot_name):
+    env = gym.make(args.env_name)
+    env = EpisodeMonitor(env)
+    env = SinglePrecision(env)
+    env.seed(args.seed)
+    env.action_space.seed(args.seed)
+    env.observation_space.seed(args.seed)
+    if (robot_name in ['halfcheetah', 'walker2d', 'hopper','ant']):
+        env.max_episode_steps = 1000
+    elif (robot_name in ['hammer', 'door', 'relocate']):
+        env.max_episode_steps = 200
+    elif (robot_name in ['pen']):
+        env.max_episode_steps = 100
+    elif (robot_name in ['kitchen']):
+        env.max_episode_steps = 280
+    else:
+        raise ValueError(f'Unknown robot name: {robot_name}')
     
-    expert_dataset = get_vd4rl_dataset(args.env_name,dataset_name, args.expert_dataset_size*env.max_episode_steps)
+    expert_dataset = get_d4rl_dataset(args.env_name, args.expert_dataset_size*env.max_episode_steps)
     return env, expert_dataset, env.max_episode_steps
 
 def make_bad_dataset(args,max_episode_steps):
@@ -96,7 +108,7 @@ def main(_):
     random.seed(args.seed)
     np.random.seed(args.seed)
     robot_name = args.env_name.split('-')[0]
-    expert_task = 'expert'
+    expert_task = args.env_name.split('-')[1]
     first_mixed_task_short_name = args.mixed_name_list[0]
     config_file = f'configs/{robot_name}-{args.bad_name_list[0][0]}.py'
     print(f'Using config file: {config_file}')
@@ -128,16 +140,15 @@ def main(_):
 
     print(env_config)
     
-    env, expert_dataset,max_episode_steps = create_expert_dataset_and_env(args,expert_task,robot_name)
+    algo_name = 'ContraDICE'
 
-    sample = expert_dataset.sample(batch_size=10000, shift=0, scale=1)
-    print(sample.observations.shape)
-    print(sample.actions.shape)
-    print(sample.rewards.shape)
-    print(sample.masks.shape)
-    print(sample.next_observations.shape)
+    if (args.use_wandb):
+        wandb.login(key='5ea6c6e6651d710fa883225381f0a2f97f35a4c6')
+        wandb.init(project='ContraDICE-rebuttal', settings=wandb.Settings(_disable_stats=True), \
+                group=f'{args.exp_name}-{robot_name}_{run_name}', job_type=algo_name,
+                name=f'{args.seed}', entity='hmhuy')
 
-    raise
+    env, expert_dataset,max_episode_steps = create_expert_dataset_and_env(args,robot_name)
     bad_dataset, _ = make_bad_dataset(args,max_episode_steps)
     bad_dataset = jax_combined_dataset(bad_dataset)
 
@@ -253,7 +264,7 @@ def main(_):
     test_discriminator(agent, expert_dataset, bad_dataset, mixed_dataset, shift, scale, disc_key)
     
     # Setup new log directory and file path
-    log_base_dir = args.exp_name
+    log_base_dir = f"logs/{args.exp_name}"
     bad_sizes_str = ",".join(map(str, args.bad_size_list))
     mixed_sizes_str = ",".join(map(str, args.mixed_size_list))
     

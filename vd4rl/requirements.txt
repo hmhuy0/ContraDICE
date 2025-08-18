@@ -1,3 +1,0 @@
-mujoco==2.3.5
-tensorflow
-numpy<2

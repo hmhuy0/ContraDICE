@@ -7,6 +7,8 @@ import sys
 sys.path.append('..')
 sys.path.append('./')
 
+import wandb
+
 import numpy as np
 import sys
 from absl import app, flags
@@ -138,6 +140,14 @@ def main(_):
 
     print(env_config)
     
+    algo_name = 'ContraDICE'
+
+    if (args.use_wandb):
+        wandb.login(key='5ea6c6e6651d710fa883225381f0a2f97f35a4c6')
+        wandb.init(project='ContraDICE-rebuttal', settings=wandb.Settings(_disable_stats=True), \
+                group=f'{args.exp_name}-{robot_name}_{run_name}', job_type=algo_name,
+                name=f'{args.seed}', entity='hmhuy')
+
     env, expert_dataset,max_episode_steps = create_expert_dataset_and_env(args,robot_name)
     bad_dataset, _ = make_bad_dataset(args,max_episode_steps)
     bad_dataset = jax_combined_dataset(bad_dataset)
@@ -254,7 +264,7 @@ def main(_):
     test_discriminator(agent, expert_dataset, bad_dataset, mixed_dataset, shift, scale, disc_key)
     
     # Setup new log directory and file path
-    log_base_dir = args.exp_name
+    log_base_dir = f"logs/{args.exp_name}"
     bad_sizes_str = ",".join(map(str, args.bad_size_list))
     mixed_sizes_str = ",".join(map(str, args.mixed_size_list))
     
